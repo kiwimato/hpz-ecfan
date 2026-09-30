@@ -91,8 +91,8 @@ docker run --rm --network none --cap-drop ALL --cap-add SYS_RAWIO \
 `/lock` must be a host directory shared by *every* mailbox user (other containers, shell
 scripts, cron), because the flock in it is what keeps transactions from interleaving. Set
 `HPZ_LOCK_DIR` to move it (on Unraid, `/boot/config` survives reboots, `/var/lock` does not
-need to). If the image is rebuilt on a host where `docker compose` is missing, the plain
-`docker` commands above are equivalent.
+need to). Unraid ships Docker without the compose plugin; use the plain `docker` commands there
+(tested on Unraid 7.3 with exactly the flags above).
 
 Full protocol and the verification record: [docs/protocol.md](docs/protocol.md).
 Contributor and AI-agent rules: [AGENTS.md](AGENTS.md).

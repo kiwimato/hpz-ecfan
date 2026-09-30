@@ -1,0 +1,30 @@
+# One-shot commands:   docker compose run --rm hpz-ecfan status
+#                      docker compose run --rm hpz-ecfan set-min 3 0x60
+# Continuous logging:  docker compose up -d logger   (30 s interval, see below)
+#
+# Only /dev/port and CAP_SYS_RAWIO are needed; no --privileged.
+# /lock must be a directory on the HOST that every mailbox user shares (other containers,
+# shell tools, cron jobs); the flock inside it serialises the EC mailbox.  On Unraid,
+# /boot/config or /var/lock both work.  /sys/class/dmi is read-only, for the model guard.
+x-common: &common
+  build: .
+  image: hpz-ecfan:latest
+  network_mode: none
+  cap_drop: [ALL]
+  cap_add: [SYS_RAWIO]
+  security_opt: [no-new-privileges:true]
+  devices:
+    - /dev/port:/dev/port
+  volumes:
+    - ${HPZ_LOCK_DIR:-/var/lock}:/lock
+    - /sys/class/dmi/id:/sys/class/dmi/id:ro
+
+services:
+  hpz-ecfan:
+    <<: *common
+    profiles: [cli]
+
+  logger:
+    <<: *common
+    command: ["log", "--interval", "30"]
+    restart: unless-stopped

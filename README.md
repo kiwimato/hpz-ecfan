@@ -65,7 +65,34 @@ Other Z-series boards likely share the EC and the mailbox but may wire fans diff
 check `dump` and `status` before writing. The tool refuses to run on non-HP-Z DMI product
 names unless `--force` is given.
 
-Needs `/dev/port` (root or `CAP_SYS_RAWIO`); works from a privileged container on Unraid.
+Needs `/dev/port` (root or `CAP_SYS_RAWIO`).
+
+## Docker (hosts without Python, e.g. Unraid)
+
+The image needs only `/dev/port` and `CAP_SYS_RAWIO`, not `--privileged`:
+
+```
+git clone https://github.com/kiwimato/hpz-ecfan && cd hpz-ecfan
+docker compose build
+docker compose run --rm hpz-ecfan status          # one-shot commands
+docker compose run --rm hpz-ecfan set-min 3 0x60
+docker compose up -d logger                       # status line every 30 s in `docker logs`
+```
+
+Without compose:
+
+```
+docker build -t hpz-ecfan .
+docker run --rm --network none --cap-drop ALL --cap-add SYS_RAWIO \
+  --device /dev/port -v /var/lock:/lock -v /sys/class/dmi/id:/sys/class/dmi/id:ro \
+  hpz-ecfan status
+```
+
+`/lock` must be a host directory shared by *every* mailbox user (other containers, shell
+scripts, cron), because the flock in it is what keeps transactions from interleaving. Set
+`HPZ_LOCK_DIR` to move it (on Unraid, `/boot/config` survives reboots, `/var/lock` does not
+need to). If the image is rebuilt on a host where `docker compose` is missing, the plain
+`docker` commands above are equivalent.
 
 Full protocol and the verification record: [docs/protocol.md](docs/protocol.md).
 Contributor and AI-agent rules: [AGENTS.md](AGENTS.md).

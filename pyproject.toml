@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hpz-ecfan"
+version = "0.1.0"
+description = "Chassis fan control for HP Z-series workstations via the EC mailbox SMBus proxy (NCT7491)"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+classifiers = ["Operating System :: POSIX :: Linux", "Topic :: System :: Hardware"]
+
+[project.scripts]
+hpz-ecfan = "hpz_ecfan.cli:main"

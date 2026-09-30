@@ -1,5 +1,7 @@
 # hpz-ecfan
 
+**Status: works on the HP Z840 (tested live); other Z-series boards untested, reports welcome.**
+
 Chassis fan control for HP Z-series workstations (developed on a Z840, BIOS M60 v02.56)
 from Linux, without a kernel module and without rebooting.
 
@@ -38,6 +40,15 @@ or the knee (`Tmin`) of the temperature curve rather than switching to manual du
 the tool dies the fans keep working. THERM limits stay armed regardless. Every failure
 direction is toward faster fans.
 
+## Install
+
+```
+git clone https://github.com/kiwimato/hpz-ecfan
+cd hpz-ecfan && pip install .        # or just run it in place with python3 -m
+```
+
+Standard library only, Python ≥ 3.9.
+
 ## Usage (root)
 
 ```
@@ -56,6 +67,9 @@ names unless `--force` is given.
 
 Needs `/dev/port` (root or `CAP_SYS_RAWIO`); works from a privileged container on Unraid.
 
+Full protocol and the verification record: [docs/protocol.md](docs/protocol.md).
+Contributor and AI-agent rules: [AGENTS.md](AGENTS.md).
+
 ## Safety notes
 
 * Config1 (`0x40`) bit 1 is the chip's LOCK bit; once set, configuration is read-only until
@@ -63,3 +77,12 @@ Needs `/dev/port` (root or `CAP_SYS_RAWIO`); works from a privileged container o
 * Clearing STRT (`0x40` bit 0) sends all PWMs to 100%.
 * A power cycle resets both the EC and the chip to BIOS defaults; a warm reboot re-runs POST,
   which rewrites the chip anyway.
+
+## Acknowledgements
+
+Register-level knowledge of the NCT7491 comes from the public ON Semiconductor datasheet;
+the read side of the EC proxy from HP's own ACPI tables. Nothing here reproduces HP code.
+
+## License
+
+MIT, see [LICENSE](LICENSE).

@@ -1,5 +1,7 @@
 # hpz-ecfan
 
+**Write-up:** [Controlling HP Z840 chassis fans from Linux](https://blog.codeverse.nl/hp-z840-fan-control-linux/)
+
 **Status: works on the HP Z840 (tested live); other Z-series boards untested, reports welcome.**
 
 Chassis fan control for HP Z-series workstations (developed on a Z840, BIOS M60 v02.56)

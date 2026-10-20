@@ -69,6 +69,88 @@ names unless `--force` is given.
 
 Needs `/dev/port` (root or `CAP_SYS_RAWIO`).
 
+### Z840 fan and temperature mapping
+
+Temperature zones control the PWM outputs they are assigned to. The Z840 zone registers
+assign local, remote1, and remote2 to PWM1 and PWM2; PWM3 is assigned local and remote2.
+PWM1 and PWM2 are also associated with SMBus thermal slave 0.
+
+```mermaid
+flowchart LR
+  Local[Local temperature]
+  Remote1[Remote1 temperature]
+  Remote2[Remote2 temperature]
+  SMBus[SMBus thermal slave 0]
+  subgraph NCT7491["NCT7491 Fan Controller"]
+    PWM1
+    PWM2
+    PWM3
+  end
+  Local -.-> PWM1
+  Local -.-> PWM2
+  Local -.-> PWM3
+  Remote1 -.-> PWM1
+  Remote1 -.-> PWM2
+  Remote2 -.-> PWM1
+  Remote2 -.-> PWM2
+  Remote2 -.-> PWM3
+  SMBus -.-> PWM1
+  SMBus -.-> PWM2
+    PWM1 --> Tach1[TACH1 / rear fan 0]
+    PWM2 --> Tach2[TACH2 / rear fan 1]
+    PWM3 --> Tach3[TACH3 / front fan 0]
+    PWM3 --> Tach4[TACH4 / front fan 1]
+```
+
+Dashed arrows show temperature-zone control assignments, not physical sensor wiring. For
+each PWM output, the NCT7491 calculates a PWM request for each assigned temperature zone
+using that zone's control curve, then outputs the highest calculated PWM value. Thus, a
+hotter zone can raise the fan speed even if the other zones request less. A THERM event can
+override this control, and a PWM channel with no assigned temperature zones is in manual mode.
+
+For PWM output `j`, let `Z_j` be its assigned temperature zones. The output is the highest
+request calculated for those zones:
+
+$$
+PWM_{out,j} = \max_{i \in Z_j} PWM_{j,i}(T_i)
+$$
+
+Here, `PWM_{j,i}(T_i)` is the PWM request for output `j` calculated from temperature zone `i`;
+the curve below shows the approximate calculation for one such request.
+
+The curve below illustrates one temperature zone controlling one PWM output. `Tmin` is
+the temperature where the output reaches `PWMmin`; over `Trange`, it rises to `PWMmax`.
+Below `Tmin`, the output behavior depends on configuration, and a THERM event can override
+the curve.
+
+The datasheet defines these endpoints and the temperature span, but does not give an explicit
+equation for this mode. As a useful linear approximation, for `Tmin <= T <= Tmin + Trange`:
+
+$$
+PWM(T) \approx PWM_{min} + (PWM_{max} - PWM_{min}) \frac{T - T_{min}}{T_{range}}
+$$
+
+Here, PWM values can be expressed either as register values or percentages, as long as the
+same units are used throughout. This approximation does not describe behavior below `Tmin`,
+or overrides such as a THERM event.
+
+```text
+PWM duty
+100% |                                      -------- PWMmax
+  |                                  ___/
+  |                              ___/
+  |                          ___/
+PWMmin|------------------------*
+  |                       Tmin
+  0% +------------------------+------------------------+-- Temperature
+             Tmin                 Tmin + Trange
+```
+
+This is an illustrative curve, not a plot of live readings. `set-tmin local 35` sets the
+local zone's `Tmin` to 35 C; it does not set a PWM duty or RPM. `set-min` changes the
+PWM output's minimum duty. When multiple temperature zones are assigned to one PWM output,
+the chip applies its automatic control behavior to those inputs.
+
 ## Docker (hosts without Python, e.g. Unraid)
 
 The image needs only `/dev/port` and `CAP_SYS_RAWIO`, not `--privileged`:
